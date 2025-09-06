@@ -24,6 +24,7 @@ export default function SMSMailer() {
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<{ message: string; type: "success" | "error" } | null>(null)
   const [phoneValidation, setPhoneValidation] = useState<{ isValid: boolean; message: string } | null>(null)
+  const [provider, setProvider] = useState<"sakari" | "textbelt">("textbelt")
 
   // Auto-detect country code based on phone number input
   const autoDetectCountry = (input: string) => {
@@ -95,7 +96,9 @@ export default function SMSMailer() {
     try {
       const fullPhoneNumber = countryCode + phoneNumber.replace(/\D/g, "")
 
-      const response = await fetch("/api/send-sms", {
+      const endpoint = provider === "sakari" ? "/api/send-sms" : "/api/textbelt"
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -112,7 +115,10 @@ export default function SMSMailer() {
       }
 
       const result = await response.json()
-      setStatus({ message: `✅ SMS sent successfully to ${fullPhoneNumber}!`, type: "success" })
+      setStatus({
+        message: `✅ SMS sent successfully to ${fullPhoneNumber} via ${provider.toUpperCase()}!`,
+        type: "success",
+      })
 
       // Reset form
       setPhoneNumber("")
@@ -145,11 +151,47 @@ export default function SMSMailer() {
       <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">📱 SMS Mailer</h1>
-          <p className="text-gray-600">Send SMS messages via Sakari.io API</p>
+          <p className="text-gray-600">Send SMS messages with multiple providers</p>
         </div>
 
-        <div className="mb-5 p-3 rounded-lg text-center bg-green-50 text-green-700 border border-green-200">
-          ✅ Ready to send SMS via Sakari API
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">SMS Provider</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setProvider("textbelt")}
+              className={`p-3 rounded-lg border-2 transition-all ${
+                provider === "textbelt"
+                  ? "border-green-500 bg-green-50 text-green-700"
+                  : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              <div className="font-semibold">TextBelt</div>
+              <div className="text-xs">Fast & Reliable</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setProvider("sakari")}
+              className={`p-3 rounded-lg border-2 transition-all ${
+                provider === "sakari"
+                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                  : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              <div className="font-semibold">Sakari</div>
+              <div className="text-xs">Your Account</div>
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={`mb-5 p-3 rounded-lg text-center border ${
+            provider === "textbelt"
+              ? "bg-green-50 text-green-700 border-green-200"
+              : "bg-blue-50 text-blue-700 border-blue-200"
+          }`}
+        >
+          ✅ Ready to send SMS via {provider === "textbelt" ? "TextBelt (1 free/day)" : "Sakari API"}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -222,15 +264,19 @@ export default function SMSMailer() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
+            className={`w-full text-white py-4 px-6 rounded-lg font-semibold text-lg focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 ${
+              provider === "textbelt"
+                ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 focus:ring-green-300"
+                : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 focus:ring-blue-300"
+            }`}
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Sending...</span>
+                <span>Sending via {provider.toUpperCase()}...</span>
               </div>
             ) : (
-              "Send SMS"
+              `Send SMS via ${provider.toUpperCase()}`
             )}
           </button>
         </form>
