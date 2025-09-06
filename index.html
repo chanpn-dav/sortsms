@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sakari SMS Mailer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .phone-input-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .country-select {
+            flex: 0 0 120px;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .phone-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+
+        .phone-input:focus,
+        .country-select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.2s ease;
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .char-counter.warning {
+            color: #f39c12;
+        }
+
+        .char-counter.error {
+            color: #e74c3c;
+        }
+
+        .send-button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .phone-validation {
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .phone-validation.valid {
+            color: #28a745;
+            display: block;
+        }
+
+        .phone-validation.invalid {
+            color: #dc3545;
+            display: block;
+        }
+
+        .api-status {
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .api-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .api-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 24px;
+                margin: 10px;
+            }
+            
+            .phone-input-container {
+                flex-direction: column;
+            }
+            
+            .country-select {
+                flex: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 SMS Mailer</h1>
+            <p>Send SMS messages via Sakari.io API</p>
+        </div>
+
+        <div id="apiStatus" class="api-status disconnected">
+            🔄 Checking API connection...
+        </div>
+
+        <form id="smsForm">
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number</label>
+                <div class="phone-input-container">
+                    <select id="countryCode" class="country-select" aria-label="Country code">
+                        <option value="+1">🇺🇸 +1</option>
+                        <option value="+44">🇬🇧 +44</option>
+                        <option value="+33">🇫🇷 +33</option>
+                        <option value="+49">🇩🇪 +49</option>
+                        <option value="+39">🇮🇹 +39</option>
+                        <option value="+34">🇪🇸 +34</option>
+                        <option value="+31">🇳🇱 +31</option>
+                        <option value="+32">🇧🇪 +32</option>
+                        <option value="+41">🇨🇭 +41</option>
+                        <option value="+43">🇦🇹 +43</option>
+                        <option value="+45">🇩🇰 +45</option>
+                        <option value="+46">🇸🇪 +46</option>
+                        <option value="+47">🇳🇴 +47</option>
+                        <option value="+358">🇫🇮 +358</option>
+                        <option value="+91">🇮🇳 +91</option>
+                        <option value="+86">🇨🇳 +86</option>
+                        <option value="+81">🇯🇵 +81</option>
+                        <option value="+82">🇰🇷 +82</option>
+                        <option value="+61">🇦🇺 +61</option>
+                        <option value="+64">🇳🇿 +64</option>
+                        <option value="+55">🇧🇷 +55</option>
+                        <option value="+52">🇲🇽 +52</option>
+                        <option value="+54">🇦🇷 +54</option>
+                        <option value="+56">🇨🇱 +56</option>
+                        <option value="+57">🇨🇴 +57</option>
+                        <option value="+51">🇵🇪 +51</option>
+                        <option value="+58">🇻🇪 +58</option>
+                        <option value="+27">🇿🇦 +27</option>
+                        <option value="+234">🇳🇬 +234</option>
+                        <option value="+254">🇰🇪 +254</option>
+                        <option value="+20">🇪🇬 +20</option>
+                        <option value="+971">🇦🇪 +971</option>
+                        <option value="+966">🇸🇦 +966</option>
+                        <option value="+965">🇰🇼 +965</option>
+                        <option value="+974">🇶🇦 +974</option>
+                        <option value="+973">🇧🇭 +973</option>
+                        <option value="+968">🇴🇲 +968</option>
+                        <option value="+962">🇯🇴 +962</option>
+                        <option value="+961">🇱🇧 +961</option>
+                        <option value="+90">🇹🇷 +90</option>
+                        <option value="+98">🇮🇷 +98</option>
+                        <option value="+92">🇵🇰 +92</option>
+                        <option value="+880">🇧🇩 +880</option>
+                        <option value="+94">🇱🇰 +94</option>
+                        <option value="+95">🇲🇲 +95</option>
+                        <option value="+66">🇹🇭 +66</option>
+                        <option value="+84">🇻🇳 +84</option>
+                        <option value="+60">🇲🇾 +60</option>
+                        <option value="+65">🇸🇬 +65</option>
+                        <option value="+62">🇮🇩 +62</option>
+                        <option value="+63">🇵🇭 +63</option>
+                    </select>
+                    <input 
+                        type="tel" 
+                        id="phoneNumber" 
+                        class="phone-input" 
+                        placeholder="Enter phone number"
+                        required
+                        aria-describedby="phoneValidation"
+                    >
+                </div>
+                <div id="phoneValidation" class="phone-validation"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Message</label>
+                <textarea 
+                    id="message" 
+                    placeholder="Type your message here..."
+                    required
+                    maxlength="1600"
+                    aria-describedby="charCounter"
+                ></textarea>
+                <div id="charCounter" class="char-counter">0 / 1600 characters</div>
+            </div>
+
+            <button type="submit" id="sendButton" class="send-button">
+                <span id="buttonText">Send SMS</span>
+                <div id="loadingSpinner" class="loading">
+                    <div class="spinner"></div>
+                    <span>Sending...</span>
+                </div>
+            </button>
+        </form>
+
+        <div id="statusMessage" class="status-message" role="alert" aria-live="polite"></div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const form = document.getElementById('smsForm');
+        const phoneInput = document.getElementById('phoneNumber');
+        const countrySelect = document.getElementById('countryCode');
+        const messageInput = document.getElementById('message');
+        const sendButton = document.getElementById('sendButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const statusMessage = document.getElementById('statusMessage');
+        const charCounter = document.getElementById('charCounter');
+        const phoneValidation = document.getElementById('phoneValidation');
+        const apiStatus = document.getElementById('apiStatus');
+
+        // Phone number validation regex patterns
+        const phonePatterns = {
+            '+1': /^[2-9]\d{2}[2-9]\d{2}\d{4}$/, // US/Canada
+            '+44': /^[1-9]\d{8,9}$/, // UK
+            '+33': /^[1-9]\d{8}$/, // France
+            '+49': /^[1-9]\d{10,11}$/, // Germany
+            '+91': /^[6-9]\d{9}$/, // India
+            '+86': /^1[3-9]\d{9}$/, // China
+            '+81': /^[7-9]\d{9}$/, // Japan
+            '+61': /^[2-478]\d{8}$/, // Australia
+            'default': /^\d{7,15}$/ // Generic international
+        };
+
+        // Initialize the application
+        async function init() {
+            setupEventListeners();
+            checkApiConnection();
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            form.addEventListener('submit', handleSubmit);
+            phoneInput.addEventListener('input', validatePhone);
+            countrySelect.addEventListener('change', validatePhone);
+            messageInput.addEventListener('input', updateCharCounter);
+            
+            // Auto-detect country code from phone input
+            phoneInput.addEventListener('input', autoDetectCountry);
+        }
+
+        // Auto-detect country code based on phone number input
+        function autoDetectCountry() {
+            const input = phoneInput.value.replace(/\D/g, '');
+            
+            if (input.startsWith('1') && input.length >= 4) {
+                countrySelect.value = '+1';
+            } else if (input.startsWith('44') && input.length >= 6) {
+                countrySelect.value = '+44';
+            } else if (input.startsWith('33') && input.length >= 6) {
+                countrySelect.value = '+33';
+            } else if (input.startsWith('49') && input.length >= 6) {
+                countrySelect.value = '+49';
+            } else if (input.startsWith('91') && input.length >= 6) {
+                countrySelect.value = '+91';
+            }
+            
+            validatePhone();
+        }
+
+        // Validate phone number
+        function validatePhone() {
+            const countryCode = countrySelect.value;
+            const phoneNumber = phoneInput.value.replace(/\D/g, '');
+            
+            if (!phoneNumber) {
+                phoneValidation.style.display = 'none';
+                return false;
+            }
+
+            const pattern = phonePatterns[countryCode] || phonePatterns.default;
+            const isValid = pattern.test(phoneNumber);
+            
+            phoneValidation.className = `phone-validation ${isValid ? 'valid' : 'invalid'}`;
+            phoneValidation.textContent = isValid 
+                ? `✓ Valid ${countryCode} number` 
+                : `✗ Invalid ${countryCode} number format`;
+            
+            return isValid;
+        }
+
+        // Update character counter
+        function updateCharCounter() {
+            const length = messageInput.value.length;
+            const maxLength = 1600;
+            
+            charCounter.textContent = `${length} / ${maxLength} characters`;
+            
+            if (length > maxLength * 0.9) {
+                charCounter.className = 'char-counter error';
+            } else if (length > maxLength * 0.8) {
+                charCounter.className = 'char-counter warning';
+            } else {
+                charCounter.className = 'char-counter';
+            }
+        }
+
+        function checkApiConnection() {
+            apiStatus.className = 'api-status connected';
+            apiStatus.textContent = '✅ Ready to send SMS via Sakari API';
+        }
+
+        async function sendSMS(phoneNumber, message) {
+            console.log('[v0] Sending SMS via serverless function to:', phoneNumber);
+            
+            // Determine the API endpoint based on environment
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const baseUrl = isLocal ? 'http://localhost:3000' : window.location.origin;
+            const endpoint = `${baseUrl}/api/send-sms`;
+            
+            console.log('[v0] Using endpoint:', endpoint);
+            
+            const payload = {
+                phoneNumber: phoneNumber,
+                message: message
+            };
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('[v0] Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('[v0] SMS request failed:', errorData);
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('[v0] SMS sent successfully:', result);
+                return result;
+                
+            } catch (error) {
+                console.error('[v0] SMS sending error:', error);
+                
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    throw new Error('Network error - please check your internet connection');
+                }
+                
+                throw error;
+            }
+        }
+
+        // Handle form submission
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            console.log('[v0] Form submitted');
+            
+            if (!validatePhone()) {
+                showStatus('Please enter a valid phone number', 'error');
+                return;
+            }
+
+            const countryCode = countrySelect.value;
+            const phoneNumber = countryCode + phoneInput.value.replace(/\D/g, '');
+            const message = messageInput.value.trim();
+
+            console.log('[v0] Sending SMS to:', phoneNumber, 'Message length:', message.length);
+
+            if (!message) {
+                showStatus('Please enter a message', 'error');
+                return;
+            }
+
+            setLoading(true);
+            
+            try {
+                const result = await sendSMS(phoneNumber, message);
+                showStatus(`✅ SMS sent successfully to ${phoneNumber}!`, 'success');
+                
+                // Reset form
+                phoneInput.value = '';
+                messageInput.value = '';
+                updateCharCounter();
+                phoneValidation.style.display = 'none';
+                
+            } catch (error) {
+                console.error('[v0] SMS sending failed:', error);
+                showStatus(`❌ Failed to send SMS: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Set loading state
+        function setLoading(loading) {
+            sendButton.disabled = loading;
+            buttonText.style.display = loading ? 'none' : 'inline';
+            loadingSpinner.style.display = loading ? 'flex' : 'none';
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`;
+            statusMessage.style.display = 'block';
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
