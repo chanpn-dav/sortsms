@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS Mailer - Multiple Providers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .provider-selector {
+            margin-bottom: 20px;
+        }
+
+        .provider-selector label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .provider-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+
+        .provider-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .char-count.warning {
+            color: #f39c12;
+        }
+
+        .char-count.error {
+            color: #e74c3c;
+        }
+
+        .api-key-group {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .api-key-group.show {
+            display: block;
+        }
+
+        .send-button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .provider-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 SMS Mailer</h1>
+            <p>Send SMS messages using multiple providers</p>
+        </div>
+
+        <form id="smsForm">
+            <div class="provider-selector">
+                <label for="provider">SMS Provider:</label>
+                <select id="provider" name="provider">
+                    <option value="sakari">Sakari (Your Account)</option>
+                    <option value="textbelt">TextBelt (Simple & Free)</option>
+                </select>
+                <div id="providerInfo" class="provider-info">
+                    Using your Sakari account with advanced features
+                </div>
+            </div>
+
+            <div class="api-key-group" id="apiKeyGroup">
+                <label for="apiKey">TextBelt API Key (optional):</label>
+                <input type="text" id="apiKey" name="apiKey" placeholder="Leave empty for 1 free SMS per day">
+            </div>
+
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number:</label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="+1234567890" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" placeholder="Enter your message here..." required maxlength="160"></textarea>
+                <div class="char-count" id="charCount">0/160 characters</div>
+            </div>
+
+            <button type="submit" class="send-button" id="sendButton">
+                Send SMS
+            </button>
+        </form>
+
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('smsForm');
+        const providerSelect = document.getElementById('provider');
+        const providerInfo = document.getElementById('providerInfo');
+        const apiKeyGroup = document.getElementById('apiKeyGroup');
+        const phoneInput = document.getElementById('phoneNumber');
+        const messageInput = document.getElementById('message');
+        const charCount = document.getElementById('charCount');
+        const sendButton = document.getElementById('sendButton');
+        const status = document.getElementById('status');
+
+        const providerInfoText = {
+            sakari: 'Using your Sakari account with advanced features',
+            textbelt: 'Simple SMS API - 1 free SMS per day without API key'
+        };
+
+        // Provider selection handler
+        providerSelect.addEventListener('change', function() {
+            const selectedProvider = this.value;
+            providerInfo.textContent = providerInfoText[selectedProvider];
+            
+            if (selectedProvider === 'textbelt') {
+                apiKeyGroup.classList.add('show');
+            } else {
+                apiKeyGroup.classList.remove('show');
+            }
+        });
+
+        // Character counter
+        messageInput.addEventListener('input', function() {
+            const length = this.value.length;
+            charCount.textContent = `${length}/160 characters`;
+            
+            if (length > 140) {
+                charCount.className = 'char-count error';
+            } else if (length > 120) {
+                charCount.className = 'char-count warning';
+            } else {
+                charCount.className = 'char-count';
+            }
+        });
+
+        // Phone number formatting
+        phoneInput.addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            if (value && !value.startsWith('1') && value.length === 10) {
+                value = '1' + value;
+            }
+            if (value) {
+                this.value = '+' + value;
+            }
+        });
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const phoneNumber = formData.get('phoneNumber');
+            const message = formData.get('message');
+            const provider = formData.get('provider');
+            const apiKey = formData.get('apiKey');
+
+            if (!phoneNumber || !message) {
+                showStatus('Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Validate phone number
+            const phoneRegex = /^\+\d{10,15}$/;
+            if (!phoneRegex.test(phoneNumber)) {
+                showStatus('Please enter a valid phone number with country code (e.g., +1234567890)', 'error');
+                return;
+            }
+
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+            showStatus('Sending SMS...', 'loading');
+
+            try {
+                const endpoint = provider === 'textbelt' ? '/api/textbelt-sms' : '/api/send-sms';
+                const requestBody = {
+                    phoneNumber,
+                    message
+                };
+
+                if (provider === 'textbelt' && apiKey) {
+                    requestBody.apiKey = apiKey;
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showStatus(`✅ SMS sent successfully via ${provider.charAt(0).toUpperCase() + provider.slice(1)}!`, 'success');
+                    form.reset();
+                    charCount.textContent = '0/160 characters';
+                    charCount.className = 'char-count';
+                } else {
+                    showStatus(`❌ Failed to send SMS: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('SMS sending error:', error);
+                showStatus('❌ Network error. Please check your connection and try again.', 'error');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send SMS';
+            }
+        });
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
